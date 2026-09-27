@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { createComponentSchema } from '../schemas/component.schema';
 import { prisma } from '../lib/prisma';
+import { ComponentCategory } from '../../generated/prisma/client';
 
 export const createComponent = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -42,5 +43,36 @@ export const createComponent = async (req: Request, res: Response): Promise<void
     }
     console.error('[ComponentController Error]', error);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+export const getComponents = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Mengambil query parameter untuk filter (contoh: ?category=CPU)
+    const { category } = req.query;
+
+    const components = await prisma.component.findMany({
+      where: {
+        // Jika category dikirim di query, filter datanya. Jika tidak, ambil semua.
+        ...(category && { category: category as ComponentCategory }),
+      },
+      include: {
+        cpuDetail: true,
+        motherboardDetail: true,
+        // Nanti kita akan me-load harga marketplace di sini juga
+      },
+      orderBy: {
+        name: 'asc' // Urutkan sesuai abjad
+      }
+    });
+
+    res.status(200).json({
+      status: 'success',
+      results: components.length,
+      data: components,
+    });
+  } catch (error) {
+    console.error('[ComponentController Error - GET]', error);
+    res.status(500).json({ status: 'error', message: 'Gagal mengambil data komponen' });
   }
 };

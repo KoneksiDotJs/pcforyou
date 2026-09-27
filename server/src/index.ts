@@ -2,6 +2,9 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import componentRoutes from './routes/component.routes';
+import buildRoutes from './routes/build.routes';
+import syncRoutes from './routes/sync.routes';
+import './workers/price.worker';
 
 // Load environment variables
 dotenv.config();
@@ -15,6 +18,8 @@ app.use(express.json());
 
 // Routes
 app.use('/api/components', componentRoutes);
+app.use('/api/builds', buildRoutes);
+app.use('/api/sync', syncRoutes);
 
 // Basic Health Check Route
 app.get('/api/health', (req: Request, res: Response) => {
