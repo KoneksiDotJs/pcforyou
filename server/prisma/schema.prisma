@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Component {
+  id                String             @id @default(uuid())
+  name              String
+  brand             String
+  category          ComponentCategory
+  imageUrl          String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  cpuDetail         CpuDetail?
+  motherboardDetail MotherboardDetail?
+  listings          ProductListing[]
+}
+
+model CpuDetail {
+  id          String    @id @default(uuid())
+  componentId String    @unique
+  socket      String
+  cores       Int
+  threads     Int
+  tdp         Int
+  hasGraphics Boolean   @default(false)
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+}
+
+model MotherboardDetail {
+  id          String    @id @default(uuid())
+  componentId String    @unique
+  socket      String
+  formFactor  String
+  memoryType  String
+  maxMemory   Int
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+}
+
+model ProductListing {
+  id           String      @id @default(uuid())
+  componentId  String
+  marketplace  Marketplace
+  sellerName   String
+  productUrl   String
+  price        Int
+  isAvailable  Boolean     @default(true)
+  lastSyncedAt DateTime    @default(now())
+  component    Component   @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  @@index([componentId])
+}
+
+enum ComponentCategory {
+  CPU
+  MOTHERBOARD
+  RAM
+  GPU
+  PSU
+  STORAGE
+  CASE
+  COOLER
+}
+
+enum Marketplace {
+  SHOPEE
+  TOKOPEDIA
+  MANUAL
+}
