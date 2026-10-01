@@ -5,6 +5,7 @@ import { useBuilderStore } from '../store/useBuilderStore';
 import { useAuthStore } from '../store/useAuthStore'; // TAMBAHAN
 import type { Component, ComponentCategory } from '../types';
 import { formatRupiah } from '../utils/format';
+import PriceChart from '../components/PriceChart';
 
 const CATEGORIES: ComponentCategory[] = [
     'CPU', 'MOTHERBOARD', 'RAM', 'GPU', 'STORAGE', 'PSU', 'CASE', 'COOLER'
@@ -15,6 +16,16 @@ export default function Builder() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [buildName, setBuildName] = useState(''); // TAMBAHAN: State untuk nama rakitan
     const [saveSuccessMsg, setSaveSuccessMsg] = useState(''); // TAMBAHAN: Pesan sukses
+
+    const [statsComponentId, setStatsComponentId] = useState<string | null>(null);
+    const { data: componentDetail, isLoading: isLoadingStats } = useQuery({
+        queryKey: ['componentDetail', statsComponentId],
+        queryFn: async () => {
+            const response = await apiClient.get(`/components/${statsComponentId}`);
+            return response.data.data as Component;
+        },
+        enabled: !!statsComponentId, // Hanya dijalankan jika ada ID komponen yang dipilih
+    });
 
     const { selectedParts, setPart, removePart, clearBuild, getTotalPrice } = useBuilderStore();
     const { user } = useAuthStore(); // TAMBAHAN: Cek user login
@@ -130,6 +141,12 @@ export default function Builder() {
                         >
                             {validateMutation.isPending ? 'PROCESSING...' : 'VALIDATE_BUILD'}
                         </button>
+                        <button
+                            onClick={clearBuild}
+                            className="w-full mt-3 text-xl bg-red-950 text-red-400 border-4 border-red-900 py-1 hover:bg-red-900 hover:text-pc-cream cursor-pointer transition-none"
+                        >
+                            [ RESET_BUILD ]
+                        </button>
                     </div>
                 </div>
 
@@ -160,12 +177,22 @@ export default function Builder() {
                                                     <div className="text-xl text-yellow-500 mt-2">Harga Belum Tersedia</div>
                                                 )}
                                             </div>
-                                            <button
-                                                onClick={() => setPart(activeCategory, comp)}
-                                                className="pixel-btn px-4 py-1 text-xl shrink-0"
-                                            >
-                                                [ ADD ]
-                                            </button>
+                                            <div className="flex gap-2 shrink-0">
+                                                {/* TOMBOL BARU UNTUK BUKA GRAFIK */}
+                                                <button
+                                                    onClick={() => setStatsComponentId(comp.id)}
+                                                    className="pixel-btn px-4 py-1 text-xl bg-pc-darkest border-pc-cream hover:bg-pc-cream hover:text-pc-darkest"
+                                                >
+                                                    [ STATS ]
+                                                </button>
+                                                {/* TOMBOL LAMA UNTUK ADD KOMPONEN */}
+                                                <button
+                                                    onClick={() => setPart(activeCategory, comp)}
+                                                    className="pixel-btn px-4 py-1 text-xl"
+                                                >
+                                                    [ ADD ]
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -262,6 +289,55 @@ export default function Builder() {
                                 CLOSE_TERMINAL
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* TAMBAHAN: MODAL STATISTIK & GRAFIK HARGA */}
+            {statsComponentId && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+                    <div className="pixel-panel p-6 max-w-4xl w-full">
+                        <div className="flex justify-between items-start border-b-4 border-pc-blue pb-4 mb-6">
+                            <div>
+                                <h2 className="text-3xl uppercase text-pc-cream">
+                                    {componentDetail?.name || 'LOADING...'}
+                                </h2>
+                                <div className="text-xl text-pc-cream/60">MARKET_ANALYSIS</div>
+                            </div>
+                            <button
+                                onClick={() => setStatsComponentId(null)}
+                                className="text-red-400 hover:text-red-300 text-3xl font-bold bg-red-950 border-4 border-red-900 px-4 py-1 cursor-pointer transition-none"
+                            >
+                                X
+                            </button>
+                        </div>
+
+                        {isLoadingStats ? (
+                            <div className="h-72 flex items-center justify-center text-3xl animate-pulse text-pc-blue">
+                                GATHERING_DATA...
+                            </div>
+                        ) : componentDetail ? (
+                            <div className="space-y-6">
+                                {/* Komponen Grafik yang kita buat tadi */}
+                                <PriceChart listings={componentDetail.listings || []} />
+
+                                <div className="grid grid-cols-2 gap-4 text-xl">
+                                    <div className="bg-pc-darkest border-2 border-pc-blue p-3">
+                                        <span className="text-pc-cream/60 block text-sm">CURRENT_LOWEST_PRICE</span>
+                                        <span className="text-green-400 font-bold text-2xl">
+                                            {componentDetail.listings?.[0]?.price
+                                                ? formatRupiah(componentDetail.listings[0].price)
+                                                : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="bg-pc-darkest border-2 border-pc-blue p-3">
+                                        <span className="text-pc-cream/60 block text-sm">DATA_POINTS_COLLECTED</span>
+                                        <span className="text-pc-cream font-bold text-2xl">
+                                            {componentDetail.listings?.[0]?.priceHistories?.length || 0} LOGS
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : null}
                     </div>
                 </div>
             )}

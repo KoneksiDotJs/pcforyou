@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import { useAuthStore } from './store/useAuthStore';
 import { apiClient } from './api/client';
+import MyBuilds from './pages/MyBuilds';
 
 // Komponen Navbar Ringkas
 function Navbar() {
@@ -29,8 +30,14 @@ function Navbar() {
       <div className="flex gap-4 items-center">
         {user ? (
           <>
-            <span className="text-2xl text-green-400">WELCOME, {user.name.toUpperCase()}</span>
-            <button onClick={handleLogout} className="pixel-btn px-4 py-1 text-xl">LOGOUT</button>
+            <span className="text-2xl text-green-400 hidden md:inline">WELCOME, {user.name.toUpperCase()}</span>
+            {/* TAMBAHAN: Tombol My Builds */}
+            <Link to="/my-builds" className="pixel-btn px-4 py-1 text-xl bg-pc-darkest border-pc-blue hover:bg-pc-cream hover:text-pc-darkest">
+              MY_BUILDS
+            </Link>
+            <button onClick={handleLogout} className="pixel-btn px-4 py-1 text-xl border-red-900 hover:bg-red-950 hover:text-red-400">
+              LOGOUT
+            </button>
           </>
         ) : (
           <Link to="/login" className="pixel-btn px-4 py-1 text-xl">LOGIN_</Link>
@@ -44,13 +51,13 @@ function Navbar() {
 function App() {
   return (
     <BrowserRouter>
-      {/* Navbar akan tampil di semua halaman */}
       <Navbar />
-
       <Routes>
         <Route path="/" element={<Builder />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        {/* TAMBAHAN: Route ke My Builds */}
+        <Route path="/my-builds" element={<MyBuilds />} />
       </Routes>
     </BrowserRouter>
   );
