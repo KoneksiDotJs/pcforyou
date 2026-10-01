@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+@import "tailwindcss";
+
+/* 1. Konfigurasi Tema (Pengganti tailwind.config.js) */
+@theme {
+  --color-pc-darkest: #010736;
+  --color-pc-dark: #0D1C42;
+  --color-pc-blue: #22396F;
+  --color-pc-cream: #FCF1D0;
+
+  --font-pixel: "VT323", monospace;
+
+  /* Hard shadow khas retro UI (tanpa blur) */
+  --shadow-retro: 4px 4px 0px 0px var(--color-pc-darkest);
+  --shadow-retro-hover: 2px 2px 0px 0px var(--color-pc-darkest);
+}
+
+/* 2. Styling Dasar */
+@layer base {
+  body {
+    @apply bg-pc-darkest text-pc-cream font-pixel;
+    /* Membuat rendering font lebih tajam/kasar khas pixel art */
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* 3. Komponen Kustom */
+@layer components {
+  /* Class khusus untuk komponen panel/kotak ala retro */
+  .pixel-panel {
+    @apply bg-pc-dark border-4 border-pc-blue shadow-retro;
+  }
+
+  /* Class khusus untuk tombol */
+  .pixel-btn {
+    @apply bg-pc-blue text-pc-cream border-4 border-pc-cream px-6 py-2 shadow-retro 
+           hover:bg-pc-cream hover:text-pc-darkest hover:border-pc-blue
+           active:translate-y-1 active:translate-x-1 active:shadow-retro-hover
+           transition-none cursor-pointer;
+  }
+}
