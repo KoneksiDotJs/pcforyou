@@ -8,7 +8,7 @@ export const createComponent = async (req: Request, res: Response): Promise<void
     // 1. Validasi payload request
     const validatedData = createComponentSchema.parse(req.body);
 
-    const { name, brand, category, imageUrl, cpuDetail, motherboardDetail } = validatedData;
+    const { name, brand, category, imageUrl, cpuDetail, motherboardDetail, ramDetail, gpuDetail, psuDetail } = validatedData;
 
     // 2. Simpan ke database menggunakan Prisma Nested Create
     const newComponent = await prisma.component.create({
@@ -24,11 +24,16 @@ export const createComponent = async (req: Request, res: Response): Promise<void
         ...(category === 'MOTHERBOARD' && motherboardDetail && {
           motherboardDetail: { create: motherboardDetail }
         }),
+        ...(category === 'RAM' && ramDetail && { ramDetail: { create: ramDetail } }),
+        ...(category === 'GPU' && gpuDetail && { gpuDetail: { create: gpuDetail } }),
+        ...(category === 'PSU' && psuDetail && { psuDetail: { create: psuDetail } }),
       },
       include: {
         // Kembalikan data beserta detailnya sebagai response
         cpuDetail: true,
         motherboardDetail: true,
+        ramDetail: true,
+        gpuDetail: true,
       }
     });
 
@@ -48,21 +53,27 @@ export const createComponent = async (req: Request, res: Response): Promise<void
 
 export const getComponents = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Mengambil query parameter untuk filter (contoh: ?category=CPU)
     const { category } = req.query;
 
     const components = await prisma.component.findMany({
       where: {
-        // Jika category dikirim di query, filter datanya. Jika tidak, ambil semua.
         ...(category && { category: category as ComponentCategory }),
       },
       include: {
         cpuDetail: true,
         motherboardDetail: true,
-        // Nanti kita akan me-load harga marketplace di sini juga
+        ramDetail: true,
+        gpuDetail: true,
+        psuDetail: true,
+        // TAMBAHAN BARU: Ambil data harga
+        listings: {
+          where: { isAvailable: true },
+          orderBy: { price: 'asc' },
+          take: 5
+        }
       },
       orderBy: {
-        name: 'asc' // Urutkan sesuai abjad
+        name: 'asc'
       }
     });
 
@@ -74,5 +85,43 @@ export const getComponents = async (req: Request, res: Response): Promise<void> 
   } catch (error) {
     console.error('[ComponentController Error - GET]', error);
     res.status(500).json({ status: 'error', message: 'Gagal mengambil data komponen' });
+  }
+};
+
+export const getComponentById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const component = await prisma.component.findUnique({
+      where: { id },
+      include: {
+        cpuDetail: true,
+        motherboardDetail: true,
+        ramDetail: true,
+        gpuDetail: true,
+        psuDetail: true,
+        listings: {
+          include: {
+            // Mengambil riwayat harga, diurutkan dari yang paling lama ke terbaru
+            priceHistories: {
+              orderBy: { recordedAt: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!component) {
+      res.status(404).json({ status: 'error', message: 'Komponen tidak ditemukan' });
+      return;
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: component,
+    });
+  } catch (error) {
+    console.error('[ComponentController Error - GET BY ID]', error);
+    res.status(500).json({ status: 'error', message: 'Gagal mengambil detail komponen' });
   }
 };

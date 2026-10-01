@@ -7,6 +7,18 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id        String       @id @default(uuid())
+  email     String       @unique
+  password  String
+  name      String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // Relasi: Satu user bisa memiliki banyak rakitan PC
+  savedBuilds SavedBuild[]
+}
+
 model Component {
   id                String             @id @default(uuid())
   name              String
@@ -17,7 +29,28 @@ model Component {
   updatedAt         DateTime           @updatedAt
   cpuDetail         CpuDetail?
   motherboardDetail MotherboardDetail?
+  ramDetail         RamDetail?
+  gpuDetail         GpuDetail?
+  psuDetail         PsuDetail?
   listings          ProductListing[]
+}
+
+model SavedBuild {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  buildName     String    // cth: "PC Gaming Kere Hore", "Workstation 3D"
+  
+  // Menyimpan referensi ID komponen yang dipilih
+  cpuId         String?
+  motherboardId String?
+  ramId         String?
+  gpuId         String?
+  psuId         String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model CpuDetail {
@@ -41,18 +74,58 @@ model MotherboardDetail {
   component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
 }
 
+model RamDetail {
+  id          String    @id @default(uuid())
+  componentId String    @unique
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  
+  memoryType  String    // cth: "DDR4", "DDR5" (Mencocokkan dengan Motherboard.memoryType)
+  speed       Int       // cth: 3200, 6000 (Mhz)
+  capacity    Int       // cth: 16, 32 (Total kapasitas GB)
+}
+
+model GpuDetail {
+  id          String    @id @default(uuid())
+  componentId String    @unique
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  
+  length      Int       // Panjang GPU dalam satuan mm (Untuk validasi Casing nanti)
+  tdp         Int       // Konsumsi daya (Watt), untuk kalkulasi PSU
+}
+
+model PsuDetail {
+  id          String    @id @default(uuid())
+  componentId String    @unique
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  
+  wattage     Int       // cth: 650, 750 (Kapasitas maksimal Watt)
+  efficiency  String    // cth: "80+ Gold", "80+ Bronze"
+}
+
 model ProductListing {
-  id           String      @id @default(uuid())
-  componentId  String
-  marketplace  Marketplace
-  sellerName   String
-  productUrl   String
-  price        Int
-  isAvailable  Boolean     @default(true)
-  lastSyncedAt DateTime    @default(now())
-  component    Component   @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  id             String      @id @default(uuid())
+  componentId    String
+  marketplace    Marketplace
+  sellerName     String
+  productUrl     String
+  price          Int
+  isAvailable    Boolean     @default(true)
+  lastSyncedAt   DateTime    @default(now())
+  component      Component   @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  priceHistories PriceHistory[]
 
   @@index([componentId])
+}
+
+model PriceHistory {
+  id               String         @id @default(uuid())
+  productListingId String
+  listing          ProductListing @relation(fields: [productListingId], references: [id], onDelete: Cascade)
+  
+  price            Int
+  recordedAt       DateTime       @default(now())
+
+  @@index([productListingId])
 }
 
 enum ComponentCategory {

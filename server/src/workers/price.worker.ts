@@ -1,41 +1,71 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../config/redis';
 import { prisma } from '../lib/prisma';
+import { fetchMarketplacePrices } from '../services/scraper.service';
 
 // Worker mendengarkan antrean 'price-sync'
 export const priceWorker = new Worker(
   'price-sync',
   async (job: Job) => {
     const { componentId, keyword } = job.data;
-    console.log(`[Worker] ⏳ Memulai pencarian harga untuk: ${keyword}`);
 
-    // SIMULASI PROSES BERAT (Misal: Fetch API Marketplace yang butuh waktu 3 detik)
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    // 1. Ambil data dari Scraper Service (Adapter Pattern)
+    const scrapedDataList = await fetchMarketplacePrices(keyword);
 
-    // SIMULASI DATA HASIL SCRAPING/API
-    // Mengacak harga pura-pura dari Rp 1.500.000 s/d Rp 3.000.000
-    const mockPrice = Math.floor(Math.random() * (3000000 - 1500000 + 1)) + 1500000;
+    // 2. Loop setiap hasil marketplace (Tokopedia, Shopee, dll)
+    for (const data of scrapedDataList) {
+      // Cek apakah listing dari toko ini sudah pernah disimpan untuk komponen ini
+      const existingListing = await prisma.productListing.findFirst({
+        where: {
+          componentId,
+          marketplace: data.marketplace,
+        }
+      });
 
-    // Simpan ke database menggunakan skema Prisma yang sudah kita buat sebelumnya
-    await prisma.productListing.create({
-      data: {
-        componentId,
-        marketplace: 'TOKOPEDIA', 
-        sellerName: 'Toko Komputer Simulasi',
-        productUrl: `https://tokopedia.com/search?q=${encodeURIComponent(keyword)}`,
-        price: mockPrice,
-        isAvailable: true,
-      },
-    });
+      let listingId;
 
-    return mockPrice;
+      if (existingListing) {
+        // Jika sudah ada: Update harga terakhir dan waktu sinkronisasi
+        const updated = await prisma.productListing.update({
+          where: { id: existingListing.id },
+          data: {
+            price: data.price,
+            lastSyncedAt: new Date(),
+            isAvailable: data.isAvailable
+          }
+        });
+        listingId = updated.id;
+      } else {
+        // Jika belum ada: Buat listing baru
+        const created = await prisma.productListing.create({
+          data: {
+            componentId,
+            marketplace: data.marketplace,
+            sellerName: data.sellerName,
+            productUrl: data.productUrl,
+            price: data.price,
+            isAvailable: data.isAvailable
+          }
+        });
+        listingId = created.id;
+      }
+
+      // 3. SIMPAN RIWAYAT HARGA
+      await prisma.priceHistory.create({
+        data: {
+          productListingId: listingId,
+          price: data.price,
+        }
+      });
+    }
+
+    return `Tersinkronisasi ${scrapedDataList.length} sumber untuk ${keyword}`;
   },
   { connection: redisConnection }
 );
 
-// Event Listeners untuk memantau status Worker
 priceWorker.on('completed', (job, returnvalue) => {
-  console.log(`[Worker] ✅ Selesai! Harga ${job.data.keyword} diperbarui (Rp${returnvalue}).`);
+  console.log(`[Worker] ✅ Selesai! ${returnvalue}`);
 });
 
 priceWorker.on('failed', (job, err) => {

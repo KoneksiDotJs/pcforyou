@@ -34,11 +34,29 @@ export const createComponentSchema = z.object({
       maxMemory: z.number().int(),
     })
     .optional(),
+    ramDetail: z.object({
+    memoryType: z.string(),
+    speed: z.number().int(),
+    capacity: z.number().int(),
+  }).optional(),
+
+  gpuDetail: z.object({
+    length: z.number().int(),
+    tdp: z.number().int(),
+  }).optional(),
+
+  psuDetail: z.object({
+    wattage: z.number().int(),
+    efficiency: z.string(),
+  }).optional(),
 }).refine(
   (data) => {
     // Validasi kondisional: pastikan detail sesuai dengan kategori
     if (data.category === 'CPU' && !data.cpuDetail) return false;
     if (data.category === 'MOTHERBOARD' && !data.motherboardDetail) return false;
+    if (data.category === 'RAM' && !data.ramDetail) return false;
+    if (data.category === 'GPU' && !data.gpuDetail) return false;
+    if (data.category === 'PSU' && !data.psuDetail) return false;
     return true;
   },
   {
