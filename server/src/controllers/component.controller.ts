@@ -90,7 +90,7 @@ export const getComponents = async (req: Request, res: Response): Promise<void> 
 
 export const getComponentById = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string
 
     const component = await prisma.component.findUnique({
       where: { id },
