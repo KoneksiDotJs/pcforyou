@@ -65,8 +65,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.cookie('token', token, {
       httpOnly: true, // Tidak bisa diakses oleh JavaScript frontend (Mencegah XSS)
       secure: process.env.NODE_ENV === 'production', // Harus HTTPS jika di production
-      sameSite: 'lax', // Proteksi CSRF standar
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari dalam milidetik
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Proteksi CSRF standar
+      maxAge: 24 * 60 * 60 * 1000, // 7 hari dalam milidetik
     });
 
     res.status(200).json({
