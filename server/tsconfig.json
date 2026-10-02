@@ -2,7 +2,10 @@
   "compilerOptions": {
     "target": "es2022",
     "module": "commonjs",
-    "rootDir": "./src",
+    "rootDirs": [
+      "./src",
+      "./generated"
+    ],
     "outDir": "./dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -17,6 +20,6 @@
     "node_modules",
     "prisma7.config.ts",
     "**/*.spec.ts",
-    "generated"
+    "generated/**/*"
   ]
 }
