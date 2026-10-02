@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173', // Port standar Vite frontend nanti
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Port standar Vite frontend nanti
   credentials: true // Wajib diaktifkan agar frontend bisa mengirim dan menerima cookie
 }));
 app.use(express.json());
