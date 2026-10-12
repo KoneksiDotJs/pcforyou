@@ -8,7 +8,7 @@ export const createComponent = async (req: Request, res: Response): Promise<void
     // 1. Validasi payload request
     const validatedData = createComponentSchema.parse(req.body);
 
-    const { name, brand, category, imageUrl, cpuDetail, motherboardDetail, ramDetail, gpuDetail, psuDetail } = validatedData;
+    const { name, brand, category, imageUrl, cpuDetail, motherboardDetail, ramDetail, gpuDetail, psuDetail, price } = validatedData;
 
     // 2. Simpan ke database menggunakan Prisma Nested Create
     const newComponent = await prisma.component.create({
@@ -27,6 +27,20 @@ export const createComponent = async (req: Request, res: Response): Promise<void
         ...(category === 'RAM' && ramDetail && { ramDetail: { create: ramDetail } }),
         ...(category === 'GPU' && gpuDetail && { gpuDetail: { create: gpuDetail } }),
         ...(category === 'PSU' && psuDetail && { psuDetail: { create: psuDetail } }),
+        ...(price !== undefined && price > 0 && {
+          listings: {
+            create: {
+              marketplace: 'MANUAL',
+              sellerName: 'Admin Base Price',
+              productUrl: '#',
+              price: price,
+              isAvailable: true,
+              priceHistories: {
+                create: { price: price }
+              }
+            }
+          }
+        })
       },
       include: {
         // Kembalikan data beserta detailnya sebagai response

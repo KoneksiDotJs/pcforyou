@@ -5,26 +5,39 @@ import { addPriceSyncJob } from "../queues/price.queue";
 export const createSync = async (req: Request, res: Response): Promise<void> => {
     try {
         const { componentId } = req.body;
+        let components = [];
 
-        // Pastikan komponennya ada di database
-        const component = await prisma.component.findUnique({
-            where: { id: componentId }
-        });
+        if (componentId && componentId !== 'ALL') {
+            // Jika ada ID spesifik, cari hanya 1 komponen itu
+            const singleComponent = await prisma.component.findUnique({
+                where: { id: componentId },
+                select: { id: true, name: true }
+            });
+            if (singleComponent) components.push(singleComponent);
+        } else {
+            // Jika ALL atau kosong, ambil semua
+            components = await prisma.component.findMany({
+                select: { id: true, name: true }
+            });
+        }
 
-        if (!component) {
-            res.status(404).json({ status: 'error', message: 'Komponen tidak ditemukan' });
+        if (components.length === 0) {
+            res.status(404).json({ status: 'error', message: '[ ERROR: COMPONENT NOT FOUND IN DATABASE ]' });
             return;
         }
 
-        // Masukkan ke antrean BullMQ (Proses berjalan di background)
-        await addPriceSyncJob(component.id, component.name);
+        let queuedJobs = 0;
+        for (const component of components) {
+            await addPriceSyncJob(component.id, component.name);
+            queuedJobs++;
+        }
 
-        // API Express langsung merespons TANPA menunggu Worker selesai
         res.status(200).json({
             status: 'success',
-            message: `Pencarian harga untuk ${component.name} sedang diproses di background.`,
+            message: `[ SYSTEM: SUCCESSFULLY QUEUED ${queuedJobs} SYNC JOB(S) ]`,
         });
     } catch (error) {
+        console.error('[Sync Controller Error]', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
-}
+};

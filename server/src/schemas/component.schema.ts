@@ -14,6 +14,7 @@ export const createComponentSchema = z.object({
     'COOLER',
   ]),
   imageUrl: z.string().url().optional(),
+  price: z.number().min(0).optional(),
   
   // Detail opsional, bergantung pada kategori
   cpuDetail: z
