@@ -1,3 +1,10 @@
+export interface User {
+  id: string
+  email: string;
+  name: string;
+  role: 'USER' | 'ADMIN';
+}
+
 export type ComponentCategory = 'CPU' | 'MOTHERBOARD' | 'RAM' | 'GPU' | 'PSU' | 'STORAGE' | 'CASE' | 'COOLER';
 
 export interface PriceHistory {

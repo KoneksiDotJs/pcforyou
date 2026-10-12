@@ -12,10 +12,10 @@ model User {
   email     String       @unique
   password  String
   name      String
+  role      Role         @default(USER)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  // Relasi: Satu user bisa memiliki banyak rakitan PC
   savedBuilds SavedBuild[]
 }
 
@@ -39,10 +39,7 @@ model SavedBuild {
   id            String    @id @default(uuid())
   userId        String
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  buildName     String    // cth: "PC Gaming Kere Hore", "Workstation 3D"
-  
-  // Menyimpan referensi ID komponen yang dipilih
+  buildName     String
   cpuId         String?
   motherboardId String?
   ramId         String?
@@ -143,4 +140,9 @@ enum Marketplace {
   SHOPEE
   TOKOPEDIA
   MANUAL
+}
+
+enum Role {
+  USER
+  ADMIN
 }

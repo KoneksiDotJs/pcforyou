@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { registerSchema, loginSchema } from '../schemas/auth.schema';
+import { AuthRequest } from '../middlewares/auth.middleware';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key';
 
@@ -57,7 +58,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Buat JWT Token
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
+    const token = jwt.sign({ userId: user.id, role: user.role, email: user.email }, JWT_SECRET, {
       expiresIn: '7d', // Token berlaku 7 hari
     });
 
@@ -72,7 +73,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({
       status: 'success',
       message: 'Login berhasil',
-      data: { id: user.id, name: user.name, email: user.email },
+      data: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error: any) {
     if (error.name === 'ZodError') {
@@ -87,4 +88,21 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 export const logout = (req: Request, res: Response) => {
   res.clearCookie('token');
   res.status(200).json({ status: 'success', message: 'Logout berhasil' });
+};
+
+export const checkAuth = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, role: true }
+    });
+    if (!user) {
+      res.status(404).json({ status: 'error', message: 'User tidak ditemukan' });
+      return;
+    }
+    res.status(200).json({ status: 'success', data: user });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
 };
