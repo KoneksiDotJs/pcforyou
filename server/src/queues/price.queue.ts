@@ -13,7 +13,7 @@ export const addPriceSyncJob = async (componentId: string, keyword: string) => {
     { componentId, keyword }, 
     {
       attempts: 3, // Coba ulang 3x jika gagal (misal API marketplace down)
-      backoff: { type: 'exponential', delay: 2000 }, // Jeda waktu sebelum retry
+      backoff: { type: 'exponential', delay: 60000 }, // Jeda waktu sebelum retry
       removeOnComplete: true, // Hapus tugas dari memori jika sukses
     }
   );

@@ -12,7 +12,7 @@ import { useEffect } from 'react';
 // Komponen Navbar Ringkas
 function Navbar() {
   // Ambil state dari Zustand
-  const { user, setUser, logout, isAdmin, checkUserAuth } = useAuthStore(); 
+  const { user, logout, isAdmin, checkUserAuth } = useAuthStore(); 
   const navigate = useNavigate();
 
   useEffect(() => {
